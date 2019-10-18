@@ -1,0 +1,29 @@
+public class TrgRRFHandler {
+    public static void beforeinsertcheckRRF(list<Team__c> newteam){
+         List<Resource_Requisition_Form__c> mproject = new  List<Resource_Requisition_Form__c>();
+        set<id> setProjectId = new set<id>();
+        for(Team__c tm : newteam){
+            if(tm.Project__c != null){
+                setProjectId.add(tm.Project__c);
+            } 
+        }
+      
+        if(setProjectId != null && setProjectId.size() > 0){
+           mproject = [Select Id, Name, status__c from Resource_Requisition_Form__c WHERE Project__c in :setProjectId];
+        }
+        
+        for(Team__c t : newteam){
+            if(mproject.size()==0){
+                t.addError('Please create first RRF form and submit it for approval');
+            }
+            else{
+                for(Resource_Requisition_Form__c rf : mproject){
+                    if(rf.Status__c != 'Approved'){
+                      t.addError('RRF is not aproved yet from managers');
+                    }
+                }
+            }                
+        }
+    }
+    
+}

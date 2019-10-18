@@ -1,0 +1,35 @@
+public class TrgTeamHandler 
+{
+    public static void appendTeamNameBeforeProject(list<Team__c> newteam)
+    {
+        set<String> setofProjectID = new set<string>();
+        Map<String,String> mapOfProjectIdWithProjectName = new Map<String, String>();
+        for(Team__c eachteam : newteam)
+        {
+            setofProjectID.add(eachteam.Project__c);
+        }
+        if(setofProjectID != null && setofProjectID.size()>0)
+        {
+            List<Milestone1_Project__c> ProjectList = [SELECT Id,Name FROM Milestone1_Project__c WHERE Id IN:setofProjectID];
+            if(ProjectList!=null && ProjectList.size()>0)
+            {
+                for(Milestone1_Project__c eachProject : ProjectList)
+                {
+                    mapOfProjectIdWithProjectName.put(eachProject.Id, eachProject.Name);
+                }
+            }
+            for(Team__c eachteam : newteam)
+            {
+                integer i = [SELECT COUNT() FROM Team__c];
+                i++;
+                if(eachteam.Project__c!=null)
+                {  
+                    
+                    eachteam.Name = 'Team'+' '+i+'-'+' '+mapOfProjectIdWithProjectName.get(eachteam.Project__c);
+                    i++;
+                }
+                
+            }
+        }
+    }
+}

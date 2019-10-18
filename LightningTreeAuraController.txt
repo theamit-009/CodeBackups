@@ -1,0 +1,61 @@
+public class LightningTreeAuraController{
+     
+    @AuraEnabled
+    public static List<item> getLeadTree(){
+         
+        List<item> items = new List<item>();
+        List<Milestone1_Project__c> projectList = new List<Milestone1_Project__c>();
+        
+        projectList = [SELECT Id, Name, (SELECT Id,Name From Teams__r) From Milestone1_Project__c];
+        List<Volunteer_Team__c>  TeamVolList = [select id,name, Team_Name__c from Volunteer_Team__c];
+        for(Milestone1_Project__c prj: projectList){
+             
+           
+            List<item> teamItems = new List<item>(); //taskItems
+            for(Team__c team: prj.Teams__r){
+         
+               List<item> temVolItems = new List<item>(); //taskItems
+                for(Volunteer_Team__c vol : TeamVolList){
+                    if(vol.Team_Name__c == team.Id){
+                        item teamVolItem = new item('Team Member : '+ vol.name, String.valueOf(vol.Id), true, null);
+                temVolItems.add(teamVolItem); 
+                    }
+                   
+                }
+                 item teamItem = new item('Team : '+ team.name, String.valueOf(team.Id), false, temVolItems);
+                teamItems.add(teamItem);
+            }
+             
+
+            item prjItem = new item('Project : ' +prj.Name, String.valueOf(prj.Id), false, teamItems);
+            items.add(prjItem);
+        }
+        return items;
+    }
+     
+    //Item Wrapper Class
+    public class item{
+        @AuraEnabled
+        public String label {get; set;}
+        @AuraEnabled
+        public String name {get; set;}
+        @AuraEnabled
+        public Boolean expanded {get; set;}
+        @AuraEnabled
+        public List<item> items {get; set;}
+         
+        public item(String label, String name, Boolean expanded, List<item> items){
+            this.label = label;
+            this.name = name;
+            this.expanded = expanded;
+            this.items = items;
+        }
+    }
+     
+    @AuraEnabled
+    public static Task getTaskDetails(Id recordId){
+        Task task = [Select id,Subject,Owner.Name,Description,ActivityDate,Status from Task where Id=:recordId];
+        return task;
+         
+    }
+}
