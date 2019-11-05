@@ -1,0 +1,212 @@
+<apex:page controller="SurveyFormPageController" action="{!checkSurvey}"  standardstylesheets="false" showheader="false" sidebar="false" docType="html-5.0">
+    <!--<apex:slds />-->
+ <!--  <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />-->
+    <html>
+        <head>
+            <title>Learning Links Survey Form</title>
+    		
+            <style>
+                /************* Non Mercedes Css *************/
+                body{padding:0 !important; margin:0 !important; display:block !important; -webkit-text-size-adjust:none; font-family: Arial,Helvetica,sans-serif;}
+                .white_bg{background: #ffffff;}
+                a{text-decoration:none;}
+                p{padding: 0; margin: 0}
+                .logo_bg{background: url("jardine_bg.png") no-repeat; background-size: 40% 50%; background-position: 125% 48%;}
+                img{-ms-interpolation-mode:bicubic;}
+                .input_label{cursor: pointer; display: block;}
+                input.radio_checked{display:none;}
+                .radio{height: 8px; width: 8px; border: 2px solid #000000; border-radius: 50%; display: inline-block;}
+                input:checked + .radio div{width: 8px; height: 8px; margin: 0; background: #000000; border-radius: 50%;}
+                .common_textarea{width: 280px; border: 1px solid #000000; padding: 6px 12px; display: block; height: 60px; resize: none; outline: none; color: #000000;}
+                .submit_btn{width: 150px; height: 30px; line-height: 30px; color: #ffffff; background: #BF010D; text-transform: uppercase; border: 0; margin: auto; cursor: pointer;}
+                .radio_feedback fieldset{padding: 0; margin: 0;}
+                .radio_feedback fieldset table tr td{position: relative; width: 100px;}
+                .radio_feedback fieldset table tr td:after{content: ""; font-size: 14px; padding: 0; text-align: center; width: 100px; background: #fff; display: inline-block; position: absolute; right: -11px; height: 1px; top: 6px;}
+                .radio_feedback fieldset table tr td:last-child:after{display: none;}
+                .radio_feedback fieldset table tr td label{display: block; padding: 20px 0 0 0 !important;}
+                .white_radio_btns [type="radio"]:checked, .white_radio_btns [type="radio"]:not(:checked) {position: absolute; left: -9999px;}
+                .white_radio_btns [type="radio"]:checked + label, .white_radio_btns [type="radio"]:not(:checked) + label {position: relative; padding-left: 28px; padding-right: 20px; cursor: pointer; display: inline-block; color: #000000;}
+                .white_radio_btns [type="radio"]:checked + label:before, .white_radio_btns [type="radio"]:not(:checked) + label:before {content: ''; position: absolute; left: 0; top: 0; width: 8px; height: 8px; border: 2px solid #000; border-radius: 100%; background: #ffffff;}
+                .white_radio_btns [type="radio"]:checked + label:after, .white_radio_btns [type="radio"]:not(:checked) + label:after {content: ''; width: 8px; height: 8px; background: #000000; position: absolute; top: 2px; left: 2px; border-radius: 100%; -webkit-transition: all 0.2s ease; transition: all 0.2s ease; }
+                .white_radio_btns [type="radio"]:not(:checked) + label:after {opacity: 0; -webkit-transform: scale(0); transform: scale(0);}
+                .white_radio_btns [type="radio"]:checked + label:after {opacity: 1; -webkit-transform: scale(1); transform: scale(1);}
+                .white_bg .radio_feedback fieldset table tr td:after{display: none;}
+                .white_bg .radio_feedback fieldset table tr td{text-align: center;}
+                .white_bg .radio_feedback fieldset table tr td label{width: 12px;}
+                [type="checkbox"]{position: absolute; opacity: 0;}
+                [type="checkbox"] + label{position: relative; cursor: pointer; padding: 0 0 0 30px; display: inline-block;}
+                [type="checkbox"] + label:before{content: ''; vertical-align: text-top; width: 12px; height: 12px; background: white; border: 2px solid #000000; position: absolute; left:0; top: 0;}
+                [type="checkbox"]:checked + label:after {content: ''; position: absolute; left: 3px; top: 8px; background: #000; width: 2px; height: 2px; box-shadow: 2px 0 0 #000, 4px 0 0 #000, 4px -2px 0 #000, 4px -4px 0 #000, 4px -6px 0 #000, 4px -8px 0 #000; -webkit-transform: rotate(45deg); transform: rotate(45deg);}
+                .white_checkbox_feedback fieldset{padding: 0; margin: 0;}
+                .white_checkbox_feedback fieldset table tr td{position: relative; display: block; padding: 0 0 10px;}
+                .custom_txt{margin: 0 0 10px;}
+                /************* ENd Non Mercedes Css *************/     
+            </style>
+        </head>
+        <body class="body" style="padding:0 !important; margin:0 !important; display:block !important; -webkit-text-size-adjust:none;">
+            <apex:pageMessages ></apex:pageMessages>
+            <apex:form >
+                <apex:outputPanel rendered="{!surveyForm}">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" align="center" class="white_bg">
+                        <tr>
+                            <td align="left" valign="top" style="height:10px;"></td>
+                        </tr>
+                        <tr>
+                            <td align="center" valign="top">
+                                <table width="600" border="0" cellspacing="0" cellpadding="0" class="mobile-shell" style="border:1px solid #000000;">
+                                    <tr>
+                                        <td class="td" style="width:600px;min-width:600px;font-size:0pt;padding:0;margin:0;font-weight:normal;">
+                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                <tr>
+                                                    <td valign="top" align="center">
+                                                        <table width="100%" border="0" cellspacing="0" cellpadding="0" class="white_radio_btns">
+                                                            <tr>
+                                                                <td valign="top" align="center" style="height:10px;">
+                                                                    <tr>
+                                                                        <td class="p0-15-30" style="padding:0px 15px 0 15px;">
+                                                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                                                <tr>
+                                                                                    <th class="column floating_img" width="300" style="font-size:0pt;line-height:0pt;padding:0;margin:0;font-weight:normal;">
+                                                                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                                                            <tr>
+                                                                                                <td class="img m-center" style="font-size:0pt;line-height:0pt;text-align:left;">
+                                                                                                    <a href="#" target="_blank">
+                                                                                                        <center>
+                                                                                                            <apex:image url="{!$Resource.LLF_Logo}"  width="180" alt="" title="" style="display: block; width: 200px; margin: 10px 0 10px;" styleclass="resp_img" />
+                                                                                                        </center>    
+                                                                                                    </a>
+                                                                                                </td>
+                                                                                           	</tr>
+                                                                                        </table>
+                                                                                    </th>
+                                                                                </tr>    
+                                                                                <tr>
+                                                                                    <td align="left" valign="top">
+                                                                                        <table width="100%" border="0" cellspacing="0" cellpadding="0" class="logo_bg white_radio_btns">
+                                                                                            <apex:variable value="{!0}" var="index" />
+                                                                                            <apex:repeat value="{!lstQuestionsWrapper}" var="eachWrapperInstance">
+                                                                                                <tr>
+                                                                                                    <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                        <apex:variable value="{!index + 1}" var="index" /><strong><u>Q - {!index}</u></strong> {!eachWrapperInstance.question}
+                                                                                                        <apex:outputPanel rendered="{!eachWrapperInstance.isRequired==true}"><span style="color: red; font-weight: bold; font-size: 16px; padding-left: 5px;">*</span></apex:outputPanel>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Numeric'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <apex:inputTextarea styleclass="common_textarea" value="{!eachWrapperInstance.getnumericans}"></apex:inputTextarea>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                </apex:outputPanel>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Scale'}" styleClass="radio_feedback">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <div class="radio_feedback">
+                                                                                                                <apex:selectRadio id="RadioButtonForFeedback" value="{!eachWrapperInstance.getfeedback}"  layout="LineDirection" rendered="true" >
+                                                                                                                    <apex:selectOptions value="{!eachWrapperInstance.SingleChoiceOptions}"/>
+                                                                                                                </apex:selectRadio>
+                                                                                                                 <apex:inputTextarea styleclass="common_textarea" value="{!eachWrapperInstance.getScaleTextAns}"></apex:inputTextarea>
+                                                                                                            </div>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                </apex:outputPanel>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Image Upload With Text Box'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <apex:inputFile value="{!eachWrapperInstance.imageVal}" fileName="{!eachWrapperInstance.imageValName}" id="Image" styleClass="form-control custom_txt"  /><br/>
+                                                                                                            <apex:inputTextarea styleclass="common_textarea" value="{!eachWrapperInstance.getImageValue}"></apex:inputTextarea>
+                                                                                                    	</td>
+                                                                                                    </tr>        
+																								</apex:outputPanel>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Date'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <apex:inputText styleclass="common_textarea" value="{!eachWrapperInstance.getdateans}"></apex:inputText>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                </apex:outputPanel>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Single Choice Option With Text Box'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <div class="radio_feedback">
+                                                                                                                <apex:selectRadio id="RadioButtonForSingleChoice" value="{!eachWrapperInstance.getSingleChoice}"  layout="LineDirection" rendered="true" >
+                                                                                                                    <apex:selectOptions value="{!eachWrapperInstance.SingleChoiceOptions}"/>
+                                                                                                                </apex:selectRadio>
+                                                                                                                <br/>
+                                                                                                                <apex:inputTextarea styleclass="common_textarea" value="{!eachWrapperInstance.getsinglechoicetext}"></apex:inputTextarea>
+                                                                                                            </div>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                    <!--<apex:inputTextArea /><br/>-->
+                                                                                                </apex:outputPanel>
+                                                                                             <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Multiple Choice Option'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;" Class="white_checkbox_feedback">
+
+                                                                                                            <apex:selectCheckboxes id="CheckBoxes" value="{!eachWrapperInstance.MCQs}"  >
+                                                                                                                <apex:selectOptions value="{!eachWrapperInstance.MultipleChoiceOptions}"/>
+                                                                                                            </apex:selectCheckboxes>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                </apex:outputPanel> 
+
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Location'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <apex:inputText styleclass="common_textarea" value="{!eachWrapperInstance.getlocation}"></apex:inputText>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                </apex:outputPanel>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='File Upload'}">
+																									<tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <apex:inputFile value="{!eachWrapperInstance.fileVal}" fileName="{!eachWrapperInstance.fileValName}" id="fileValue" styleClass="form-control custom_txt"  /><br/>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                </apex:outputPanel>
+                                                                                                <apex:outputPanel rendered="{!eachWrapperInstance.vtype=='Text Box'}">
+                                                                                                    <tr>
+                                                                                                        <td class="text" align="left" style="font-size:14px;padding:0 0 10px 0;text-align:left;">
+                                                                                                            <apex:inputText styleclass="common_textarea" value="{!eachWrapperInstance.gettextans}"></apex:inputText>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                    <!--<apex:inputTextArea /><br/>-->
+                                                                                                </apex:outputPanel>
+                                                                                            </apex:repeat>
+                                                                                            <tr>
+                                                                                                <td align="left" valign="top" style="padding: 0 0 20px 0">
+                                                                                                    <table width="300" border="0" cellspacing="0" cellpadding="0">
+                                                                                                        <tr>
+                                                                                                            <td align="center" valign="top"  style="font-size: 14px; padding: 0;">
+                                                                                                                <apex:commandButton styleclass="submit_btn" action="{!updatePreferences}" value="Submit" />
+                                                                                                            </td>
+                                                                                                        </tr>
+                                                                                                    </table>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        </table>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            </table>
+                                                                        </td>
+                                                                    </tr>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                    </table>
+                </apex:outputPanel>
+            </apex:form>
+        </body>
+    </html>
+</apex:page>

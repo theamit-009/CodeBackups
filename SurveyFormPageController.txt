@@ -1,0 +1,225 @@
+public without sharing class SurveyFormPageController {
+	
+    
+    Public String objId;
+    Public ID surveyFormId;
+    Public ID surveyId;
+    Public List<KPI_Questions__c> lstKPIQuestions{get;set;}
+    Public Map<String,Boolean> mapOfKPIQuestionIdWithRequired{get;set;}
+    public String contactId{get;set;}
+    public String projectId{get;set;}
+    Public List<String> lstIds{get;set;}
+    public Survey_Form_Response__c objRes{get;set;}
+    public boolean surveyForm{get;set;}
+    public List<SurveyQuestionsWrapper> lstQuestionsWrapper{get;set;}
+    public String pictureurl{get;set;}
+    Public List<String> options{get;set;}
+    
+   
+    public SurveyFormPageController()
+    {    
+        Boolean isExceptionOccured = false;
+        objId = ApexPages.currentPage().getParameters().get('id'); 
+        system.debug('Encrypted Object Id ---->' + objId);
+        Blob key = Blob.valueOf(Label.AESCryptoKey);
+        if(objId != null){
+            try{
+                Blob blobData = EncodingUtil.base64Decode(objId);		
+                Blob decryptedBlob = Crypto.decryptWithManagedIV('AES128', key, blobData);		
+                String decodedId = decryptedBlob.toString();
+                System.debug('decodedId  '+decodedId); 
+                lstIds = decodedId.split('-');
+                System.debug('Project Id'+lstIds[0]);
+                System.debug('Contact Id'+lstIds[1]);
+                projectId = lstIds[0];
+                contactId = lstIds[1];
+                
+            }catch(Exception ex){
+                isExceptionOccured = true;
+                System.debug('Security Exception Type : '+ex.getTypeName());
+                System.debug('Security Exception Message : '+ex.getMessage());
+            }
+            
+        }
+        
+        if(isExceptionOccured == false)
+        {
+            surveyForm = true;
+            List<Survey_Form__c> lstSurvey = [SELECT Id FROM Survey_Form__c WHERE Active__c =:true];// AND Project__c=:objId ];
+            IF(lstSurvey !=null && lstSurvey.size()>0)
+            	surveyFormId = lstSurvey[0].Id;
+            System.debug('Survey Id '+surveyFormId);
+            List<Survey_Form_Question__c> lstSurveyQuestions = [SELECT Id,KPI_Question__c,Required__c FROM Survey_Form_Question__c WHERE Survey_Form__c =:surveyFormId ];
+            System.debug('lstSurveyQuestions '+lstSurveyQuestions);
+            mapOfKPIQuestionIdWithRequired = new Map<String,Boolean>();
+            for(Survey_Form_Question__c eachSFQues : lstSurveyQuestions)
+            {
+                if(!mapOfKPIQuestionIdWithRequired.containsKey(eachSFQues.KPI_Question__c)){
+                    mapOfKPIQuestionIdWithRequired.put(eachSFQues.KPI_Question__c,eachSFQues.Required__c);
+                }
+            }
+            lstKPIQuestions = [SELECT Id,Question__r.Question__c,Question__r.Type__c,Question__r.Options__c 
+                                                      FROM KPI_Questions__c
+                                                      WHERE Id IN : mapOfKPIQuestionIdWithRequired.keySet()];
+            System.debug('lstKPIQuestions '+lstKPIQuestions);
+            lstQuestionsWrapper = new List<SurveyQuestionsWrapper>();
+           	for(KPI_Questions__c eachQues :lstKPIQuestions)
+            {
+                SurveyQuestionsWrapper objQuestionWrapper = new SurveyQuestionsWrapper(eachQues,mapOfKPIQuestionIdWithRequired.get(eachQues.Id));
+                
+                System.debug('Question '+eachQues.Question__r.Question__c);
+                System.debug('Question Type'+eachQues.Question__r.Type__c);
+                System.debug('Option Values'+eachQues.Question__r.Options__c);
+                if(eachQues.Question__r.Options__c!=null && eachQues.Question__r.Options__c!='')
+                {
+                    if(eachQues.Question__r.Options__c.contains('\n'))
+                    {
+                        String str=eachQues.Question__r.Options__c; 
+                        options=str.split('\\n');
+                        System.debug('Available Options in Question --'+options); 
+                        if(eachQues.Question__r.Type__c == 'Single Choice Option With Text Box' || eachQues.Question__r.Type__c == 'Scale' )
+                        {
+                            for(String eachstr: options){
+                            	objQuestionWrapper.lstSCQOptions.add(new SelectOption(eachstr,eachstr)); 
+                        	}
+                            System.debug('objQuestionWrapper.lstSCQOptions '+objQuestionWrapper.lstSCQOptions);
+                        }
+                        else if(eachQues.Question__r.Type__c == 'Multiple Choice Option')
+                        {
+                        	for(String eachstr: options){
+                            	objQuestionWrapper.lstMCQOptions.add(new SelectOption(eachstr,eachstr)); 
+                        	}
+                            System.debug('objQuestionWrapper.lstMCQOptions '+objQuestionWrapper.lstMCQOptions);
+                        }                 
+                    }
+                }
+                lstQuestionsWrapper.add(objQuestionWrapper);
+            }
+        }
+        else{
+            ApexPages.addmessage(new ApexPages.message(ApexPages.severity.Error, 'Decryption failed . Invalied URL !'));
+        } 
+        
+    }
+    
+    public class SurveyQuestionsWrapper{
+        
+		public string question{get;set;}
+        public string vtype{get;set;}
+        public string quesId {get;set;}
+        public Boolean isRequired{get;set;}
+        public String getScaleTextAns{get;set;}
+        public string gettextans {get;set;}
+        public string getdateans {get;set;}
+        public string getnumericans {get;set;}
+        public string getsinglechoicetext {get;set;}
+        public string getlocation {get;set;}
+        public String getfeedback {get; set;}
+        public String getSingleChoice {get; set;}
+        public Blob imageVal{get;set;}
+        public string imageValName {get;set;}
+        public Blob fileVal{get;set;}
+        public string fileValName {get;set;}
+        public string getImageValue{get;set;}
+        public string getfileValue{get;set;}
+       
+        public String optionsMCQ {get;set;}
+        
+        
+        Public List<String> options{get;set;}
+    	Public List<SelectOption> lstMCQOptions{get;set;}
+        Public List<SelectOption> lstSCQOptions{get;set;}
+    	List<string> MCQs = new List<String>();
+        
+          public SurveyQuestionsWrapper(KPI_Questions__c kpiQues,Boolean isRequiredQuestion)
+        {
+            question = kpiQues.Question__r.Question__c;
+            vtype = kpiQues.Question__r.Type__c;
+            quesId = kpiQues.Question__r.Id;
+            isRequired = isRequiredQuestion;
+            system.debug(optionsMCQ);  
+            lstMCQOptions = new List<SelectOption>();
+            lstSCQOptions = new List<SelectOption>();
+        }
+        
+        public List<SelectOption> getMultipleChoiceOptions() 
+        {
+           return lstMCQOptions; 
+        }
+        
+        public List<SelectOption> getSingleChoiceOptions() 
+        {
+            return lstSCQOptions; 
+        }
+        
+        public String[] getMCQs() {
+            return MCQs;
+        }
+        
+        public void setMCQs(String[] MCQs) {
+            this.MCQs = MCQs;
+        }
+        
+        
+      
+        
+    }
+    
+    public Pagereference checkSurvey()
+    {
+        objRes = new Survey_Form_Response__c();
+        objRes.Survey_Form__c = surveyFormId;
+        objRes.Filled_By__c = contactId;
+        insert objRes;
+        surveyId = objRes.Id;
+        system.debug('Survey Form Response----->' + objRes);
+        system.debug('Survey Form Response ID----->' + SurveyID);
+        return null;
+    }
+    
+    public void updatePreferences()
+    {
+        System.debug('What is in list wrapper ---->' + lstQuestionsWrapper);          
+        System.debug('size of list wrapper ---->' + lstQuestionsWrapper.size());
+        for(SurveyQuestionsWrapper eachWrapper : lstQuestionsWrapper)
+        {
+        	System.debug('eachWrapper.selectedValues : '+eachWrapper.MCQs);
+            System.debug('eachWrapper.getsinglechoicetext :'+eachWrapper.MCQs);
+        }
+        List<Survey_Response_Answer__c> lstResponseAns = new List<Survey_Response_Answer__c>();
+        
+        if(lstQuestionsWrapper!=null && lstQuestionsWrapper.size()>0)
+        {
+            for(SurveyQuestionsWrapper eachlistWrapper : lstQuestionsWrapper)
+            {
+                Survey_Response_Answer__c objAns = new Survey_Response_Answer__c();
+                system.debug('===eachlistWrapper.getans: ' +eachlistWrapper.gettextans);
+                System.debug('raadio type---->' + eachlistWrapper.vtype);
+                if(eachlistWrapper.vtype == 'Numeric'){
+                    objAns.Answer__c = eachlistWrapper.getnumericans;
+                }
+                else if(eachlistWrapper.vtype == 'Date'){
+                    objAns.Answer__c = eachlistWrapper.getdateans;
+                }
+                else if(eachlistWrapper.vtype == 'Location'){
+                    objAns.Answer__c = eachlistWrapper.getlocation;
+                }
+                else if(eachlistWrapper.vtype == 'Text Box'){
+                    objAns.Answer__c = eachlistWrapper.gettextans;
+                }
+                objAns.Survey_Form_Response__c   =  surveyId;
+                system.debug('===before insert==' +objAns);
+                lstResponseAns.add(objAns);
+               
+                system.debug('New list answer values' + lstResponseAns);
+            }
+            insert lstResponseAns;
+        }
+       	objRes.Status__c = 'Completed';
+        System.debug('objRes'+objRes);
+        update objRes;
+       /// return null;
+    }
+    
+   
+}
