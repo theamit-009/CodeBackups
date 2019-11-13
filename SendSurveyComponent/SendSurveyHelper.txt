@@ -1,0 +1,112 @@
+({
+	doInit : function(component, event, helper){
+	
+        var initailAction = component.get('c.getTeamDetails');
+        initailAction.setParams({
+            projectId : component.get('v.recordId')
+        });
+        initailAction.setCallback(this,function(response){
+            var state = response.getState();
+            if(state == 'SUCCESS'){
+              var wrapperData = response.getReturnValue();
+              console.log('Wrapper Data Size '+wrapperData.length);
+                if(!$A.util.isEmpty(wrapperData) && !$A.util.isUndefined(wrapperData))
+                {
+                    component.set('v.lstTeamWrapperData',wrapperData);
+                    console.log('Wrapper Data Size '+wrapperData.length);
+                    wrapperData.forEach(function(eachWrapperData){
+                        console.log('Team '+eachWrapperData.teamName);
+                        console.log('Manager Name '+eachWrapperData.RPManager.Name);
+                        console.log('Manager Email '+eachWrapperData.RPManager.Email);
+                        console.log('Team Member Wrapper'+eachWrapperData.lstTeamMemberWrapper);
+                        eachWrapperData.lstTeamMemberWrapper.forEach(function(eachTeamMember){
+                            console.log('Team Member Name :'+eachTeamMember.representative.Name); 
+                            console.log('Team Member Email :'+eachTeamMember.representative.Email); 
+                        });
+                    });
+                }
+            }
+            else
+            {
+             alert('Error ');   
+            }
+            
+        });
+        $A.enqueueAction(initailAction);
+	},
+    
+    handleSelectAllQuestions : function(component, event, helper){
+    	var isSelectAll = component.get('v.isSelectAll');
+        var isSelectedTeam = component.find('isSelectedTeam');
+        var isSelectedTeamMember = component.find('isSelectedTeamMember');
+        
+        if(isSelectAll == true){
+            for(var i=0; i<isSelectedTeam.length; i++){
+             	   isSelectedTeam[i].set('v.value',true);
+            }
+            for(var i=0; i<isSelectedTeamMember.length; i++){
+             	   isSelectedTeamMember[i].set('v.value',true);
+            }
+        }
+        else{
+            for(var i=0; i<isSelectedTeam.length; i++){
+                isSelectedTeam[i].set('v.value',false);
+            }
+             for(var i=0; i<isSelectedTeamMember.length; i++){
+             	   isSelectedTeamMember[i].set('v.value',false);
+            }
+        }
+	},
+    
+    closeQuickAction : function(component, event, helper){
+        $A.get('e.force:closeQuickAction').fire();
+    },
+    
+    sendSurvey : function(component, event, helper){
+        var lstTeamWrapperData = component.get('v.lstTeamWrapperData');
+        var stringifiedWrappedData = JSON.stringify(component.get('v.lstTeamWrapperData'));
+        var sendSurveyAction = component.get('c.sendSureyToTeams');
+        sendSurveyAction.setParams({
+            projectId : component.get('v.recordId'),
+            stringifiedWrappedData : stringifiedWrappedData
+        });
+        sendSurveyAction.setCallback(this,function(response){
+            var state = response.getState();
+            if(state == 'SUCCESS'){
+                var toastEvent = $A.get('e.force:showToast');
+                if(toastEvent)
+                {
+                    toastEvent.setParams({
+                        "type" : "success",
+                        "message" :"Survey sent successfully !"
+                    });
+                    toastEvent.fire();     
+                }
+                else
+                {
+                    alert('Survey sent successfully !');   
+                } 
+                $A.get('e.force:closeQuickAction').fire();
+            }
+            else{
+                 var toastEvent = $A.get('e.force:showToast');
+                if(toastEvent)
+                {
+                    toastEvent.setParams({
+                        "type" : "error",
+                        "message" :"There occured an error while sending survey !"
+                    });
+                    toastEvent.fire();     
+                }
+                else
+                {
+                    alert('There occured an error while sending survey !');   
+                } 
+                
+            }
+        });
+        $A.enqueueAction(sendSurveyAction);
+        
+    	
+    }
+})

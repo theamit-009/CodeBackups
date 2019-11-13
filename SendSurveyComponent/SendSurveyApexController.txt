@@ -1,0 +1,141 @@
+public class SendSurveyController {
+
+	@AuraEnabled
+    public static List<ProjectTeamWrapper.SelectTeam> getTeamDetails(String projectId)
+    {
+        List<ProjectTeamWrapper.SelectTeam> lstTeamAndTeamMembers = new List<ProjectTeamWrapper.SelectTeam>();
+        Set<String> setOfTeamId = new Set<String>();
+        Map<String,Boolean> mapOfContactsWithProfile = new Map<String,Boolean>();
+        Map<String,String> mapOfContactsWithTeamName = new Map<String,String>();
+        Map<String,String> mapOfTeamIdWithWrapperId = new Map<String,String>();
+        List<Contact> lstManagers = new List<Contact>();
+        Set<String> setOFManagersID = new Set<String>();
+        Set<String> setOfTeamName = new Set<String>();
+        Map<String,ProjectTeamWrapper.SelectTeam> mapOfTeamIDWithTeamName = new Map<String,ProjectTeamWrapper.SelectTeam>();
+        List<Project_Team__c> lstProjectTeam = [SELECT Id,Team__r.Id,Team__r.Manager__c,Team__r.Name FROM Project_Team__c WHERE Project__c =: projectID];
+        if(lstProjectTeam != null && lstProjectTeam.size() > 0)
+        {
+            
+            for(Project_Team__c eachProjectTeam : lstProjectTeam)
+            {
+                setOfTeamId.add(eachProjectTeam.Team__r.Id);
+                setOfTeamName.add(eachProjectTeam.Team__r.Name);
+                
+                if(!mapOfContactsWithTeamName.containsKey(eachProjectTeam.Team__r.Manager__c)){
+                    mapOfContactsWithTeamName.put(eachProjectTeam.Team__r.Manager__c,eachProjectTeam.Team__r.Name);
+                }
+                
+                ProjectTeamWrapper.SelectTeam objSelectTeam = new ProjectTeamWrapper.SelectTeam();
+                objSelectTeam.teamName = eachProjectTeam.Team__r.Name;
+                objSelectTeam.teamId = eachProjectTeam.Team__r.Id;
+                objSelectTeam.isManager = true;
+                mapOfTeamIDWithTeamName.put(eachProjectTeam.Team__r.Name,objSelectTeam);
+                
+            }
+            lstManagers = [SELECT Name,Email,Single_Response__c FROM Contact WHERE Id IN : mapOfContactsWithTeamName.keySet()];
+            for(Contact eachCon : lstManagers)
+            {
+                mapOfTeamIDWithTeamName.get(mapOfContactsWithTeamName.get(eachCon.Id)).RPManager = eachCon;
+            }
+            
+            List<Team_Member__c> lstTeamMember = [SELECT ID,Representative__c, Team__r.Id,Team__r.Name,Team__r.Manager__c FROM Team_Member__c WHERE Team__c IN :setOfTeamId];
+            Set<String> setOfContactIDs = new Set<String>();
+            for(Team_Member__c eachTeamMember : lstTeamMember){
+                setOfContactIDs.add(eachTeamMember.Representative__c);
+            }
+         
+            Map<Id,Contact> mapOfContact = new Map<Id,Contact>([SELECT Id,Name,Email,Single_Response__c FROM Contact WHERE Id IN : setOfContactIDs]);
+            Map<String,List<ProjectTeamWrapper.SelectTeamMember>> mapOTeamNameWithSelectTeamMember = new Map<String,List<ProjectTeamWrapper.SelectTeamMember>>();
+            for(Team_Member__c eachTeamMember : lstTeamMember)
+            {
+                setOfContactIDs.add(eachTeamMember.Representative__c);
+                ProjectTeamWrapper.SelectTeamMember objSelectTeamMember = new ProjectTeamWrapper.SelectTeamMember();
+                objSelectTeamMember.rpId = eachTeamMember.Representative__c;
+                objSelectTeamMember.teamName = eachTeamMember.Team__r.Name;
+                objSelectTeamMember.representative = mapOfContact.get(eachTeamMember.Representative__c);
+                if(!mapOTeamNameWithSelectTeamMember.containsKey(eachTeamMember.Team__r.Name)){
+                    mapOTeamNameWithSelectTeamMember.put(eachTeamMember.Team__r.Name,new List<ProjectTeamWrapper.SelectTeamMember>{objSelectTeamMember}); 
+                }
+                else{
+                    mapOTeamNameWithSelectTeamMember.get(eachTeamMember.Team__r.Name).add(objSelectTeamMember);
+                }
+			
+            } 
+            
+            for(String teamName: setOfTeamName){
+                List<ProjectTeamWrapper.SelectTeamMember> lstSelectTeamMember = mapOTeamNameWithSelectTeamMember.get(teamName);
+                mapOfTeamIDWithTeamName.get(teamName).lstTeamMemberWrapper = lstSelectTeamMember;
+            }
+            
+            lstTeamAndTeamMembers.addAll(mapOfTeamIDWithTeamName.values());
+        } 
+        return lstTeamAndTeamMembers;
+    }
+
+    @AuraEnabled
+    public static void sendSureyToTeams(String projectId,String stringifiedWrappedData)
+    {
+        System.debug('project Id '+projectId);
+        System.debug('stringifiedWrappedData '+stringifiedWrappedData);
+        List<ProjectTeamWrapper.SelectTeam> lstTeamAndTeamMembers = (List<ProjectTeamWrapper.SelectTeam>)
+        System.JSON.deserialize(stringifiedWrappedData,List<ProjectTeamWrapper.SelectTeam>.class);
+        system.debug('Debug for Displaying all the records: lstTeamAndTeamMembers'+lstTeamAndTeamMembers);
+        
+        
+        List<ProjectTeamWrapper.SelectTeamMember> lstTeamMember = new List<ProjectTeamWrapper.SelectTeamMember>();
+        Map<String,Boolean> mapOfContactIdWithResponseType = new Map<String,Boolean>();
+        Set<String> setOfTeamIds = new Set<String>();
+        Set<String> setOfContactIds = new Set<String>();
+        
+        for(ProjectTeamWrapper.SelectTeam eachWrapperData : lstTeamAndTeamMembers)
+        {
+            if(eachWrapperData.isSelected == true)
+            {
+                setOfTeamIds.add(eachWrapperData.teamId);
+                if(eachWrapperData.RPManager.Id != null)
+                {
+                    setOfContactIds.add(eachWrapperData.RPManager.Id);
+                    mapOfContactIdWithResponseType.put(eachWrapperData.RPManager.Id,eachWrapperData.isSingleResponse);
+                }
+              		
+            }
+            System.debug('====>>>   ProjectTeamWrapper.SelectTeamMember  :'+eachWrapperData.lstTeamMemberWrapper);
+            System.debug('====>>>   ProjectTeamWrapper.RPManager  :'+eachWrapperData.RPManager.Id);
+           
+            lstTeamMember.addAll(eachWrapperData.lstTeamMemberWrapper);
+        }
+     
+        for(ProjectTeamWrapper.SelectTeamMember eachTeamMember : lstTeamMember){
+            setOfContactIds.add(eachTeamMember.representative.Id);
+            mapOfContactIdWithResponseType.put(eachTeamMember.representative.Id,eachTeamMember.isSingleResponse);
+        }
+        
+        Blob key = Blob.valueOf(Label.AESCryptoKey);
+		List<Contact> lstContactsToUpdate = new List<Contact>();        
+        for(Contact eachCon : [SELECT Id,Name,Email,Single_Response__c, Survey_Start_Time__c FROM Contact WHERE Id IN : setOfContactIds AND Email != null])
+        {
+            	System.debug('eachCon .Email : '+eachCon.Email);
+            	eachCon.Single_Response__c = mapOfContactIdWithResponseType.get(eachCon.Id);
+                eachCon.Survey_Start_Time__c = System.now();
+                lstContactsToUpdate.add(eachCon);
+            	String projectContactId = projectId+'-'+eachCon.Id;
+                String encodedCipherText = EncodingUtil.base64Encode(Crypto.encryptWithManagedIV('AES128', key, Blob.valueOf(projectContactId)));
+             	String encodedId = encodingUtil.URLEncode(encodedCipherText,'UTF-8');
+            	String encryptedSurveyURL = 'http://llfdev2-llf2.cs76.force.com/SurveyForm?id='+encodedId;
+             	System.debug('encryptedSurveyURL'+encryptedSurveyURL);
+            	System.debug('Name '+eachCon.Name+'  Email : '+eachCon.Email);
+            	Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+            	email.setToAddresses(new List<String>{eachCon.Email});
+            	email.setSenderDisplayName('Team LLF');
+            	email.setSubject('LLF Survey');
+            	email.setHtmlBody('Hi '+eachCon.Name+'<br/>Please complete the survey using below link.<br/>'+encryptedSurveyURL+'<br/>Thank You,<br/> Team LLF');
+            	Messaging.SendEmailResult[] results = Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{email});  
+        }
+        
+        if(lstContactsToUpdate != null && lstContactsToUpdate.size() >0){
+            update lstContactsToUpdate;
+        }
+        System.debug('lstContactsToUpdate '+lstContactsToUpdate);
+    }
+    
+}

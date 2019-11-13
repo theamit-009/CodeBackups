@@ -1,0 +1,112 @@
+<aura:component controller="SendSurveyController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickActionWithoutHeader" access="global" >
+	
+    
+    <aura:attribute name="lstTeamWrapperData" type="ProjectTeamWrapper.SelectTeam[]" />
+    <aura:attribute name="isSelectAll" type="boolean" default="false"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="responseTypes" type="String[]" default="Single Response,Multiple Response"/>
+    
+    
+    
+    <aura:html tag="style">
+        .slds-modal__container{ 
+        height : auto; width: 180%; max-width: 180vh; 
+        } 
+        .modal-body{ 
+        height : 85vh !important; 
+        max-height: 85vh !important; 
+        } 
+        .slds-modal__footer{ 
+        display: inline !important; 
+        }
+        .last{
+        text-align: left; 
+        vertical-align: middle; 
+        }
+        
+       
+	</aura:html>
+    
+    <aura:if isTrue="{!v.lstTeamWrapperData.length != 0}">
+        <br/>
+        <header class="slds-modal_header">
+            <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate slds-align_absolute-center">Select Teams To Send Survey</h2>                 
+        </header>  
+        
+        
+        <br/>
+        <div class="slds-modal__content slds-p-around_medium slds-p-top_medium" id="modal-content-id-1">  
+            <div class="slds-table--header-fixed_container" >
+                <div class="slds-scrollable_y" style="height:100%;">
+                    <table class="slds-table  slds-table--cell-buffer custom_table_class slds-table--header-fixed">
+                        <thead>
+                            <tr class="slds-text-title_caps">
+                                <th scope="col">
+                                    <div class="slds-cell-fixed" title="">
+                                        <label class="slds-checkbox">
+                                            <ui:inputCheckbox value="{!v.isSelectAll}" change="{!c.handleSelectAllQuestions}" aura:id="selectAll"/>
+                                            <span class="slds-checkbox--faux" />
+                                        </label>
+                                    </div>
+                                </th>
+                                <th scope="col">
+                                    <div class="slds-cell-fixed" title="Team Name">Team Name</div>
+                                </th>
+                                <th scope="col">
+                                    <div class="slds-cell-fixed" title="Designation">Designation</div>
+                                </th>
+                                <th scope="col">
+                                    <div class="slds-cell-fixed" title="Name">Name</div>
+                                </th>
+                                <th scope="col">
+                                    <div class="slds-cell-fixed" title="Email">Email</div>
+                                </th>
+                                <th scope="col" class="last">
+                                    <div class="slds-cell-fixed" title="Response Type">Response Type (Default :Single Resposne) </div>
+                                </th>
+                            </tr>       
+                        </thead> 
+                        <tbody>
+                            <aura:iteration items="{!v.lstTeamWrapperData}" var="singleWrapperData">
+                              <tr>   
+                                  <aura:if isTrue="{!singleWrapperData.RPManager != null}">
+                                      <td><ui:inputCheckbox   aura:id="isSelectedTeam" name="isSelected" value="{!singleWrapperData.isSelected}" /></td> 
+                                      <aura:set attribute="else">
+                                      <td><ui:inputCheckbox   aura:id="isSelectedTeam" name="isSelected" value="{!singleWrapperData.isSelected}" disabled="true" /></td>   
+                                      </aura:set>
+                                  </aura:if>
+                                <td>{!singleWrapperData.teamName}</td> 
+                                <td>{!singleWrapperData.designation}</td> 
+                                <td>{!singleWrapperData.RPManager.Name}</td> 
+                                <td>{!singleWrapperData.RPManager.Email}</td> 
+                                <td class="last"><ui:inputCheckbox   aura:id="isSelectedTeamResponse" name="isSelectedManagerResponse" value="{!singleWrapperData.isSingleResponse}" /></td>
+                              </tr>  
+                              <aura:iteration items="{!singleWrapperData.lstTeamMemberWrapper}" var="eachTeamMember">
+                              	<tr>
+                                	<td><ui:inputCheckbox   aura:id="isSelectedTeamMember" name="isSelectedTeamMember" value="{!eachTeamMember.isRepSelected}" /></td> 
+                                    <td>{!eachTeamMember.teamName}</td>
+                                    <td>{!eachTeamMember.designation}</td> 
+                                    <td>{!eachTeamMember.representative.Name}</td>
+                                    <td>{!eachTeamMember.representative.Email}</td>
+                                    <td class="last"><ui:inputCheckbox   aura:id="isSelectedTeamMemberResponse" name="isSelectedRepresentativeResponse" value="{!eachTeamMember.isSingleResponse}" /></td>
+                                </tr>
+                              </aura:iteration>
+                            </aura:iteration>                            
+                        </tbody>
+                    </table> 
+                </div>
+            </div>
+        </div>
+        
+        <br/>    
+        <div class="slds-docked-form-footer slds-float_left">
+            <lightning:button class="slds-button slds-button_neutral slds-float_right slds-p-left_medium" onclick="{!c.closeQuickAction}">Cancel</lightning:button>
+            <lightning:button class="slds-button slds-button_brand slds-float_right slds-p-right_medium" onclick="{!c.sendSurvey}">Send Survey</lightning:button>  
+        </div>
+        <aura:set attribute="else">
+            <h2 class="slds-align_absolute-center"><strong>There is no team under this project</strong></h2> 
+        </aura:set>
+        
+    </aura:if>
+    
+</aura:component>

@@ -1,0 +1,62 @@
+({
+	doInit : function(component, event, helper) {
+		helper.doInit(component, event, helper);
+	},
+    
+    handleSelectAllQuestions : function(component, event, helper){
+    	helper.handleSelectAllQuestions(component, event, helper);
+	},
+    
+    closeQuickAction : function(component, event, helper){
+        helper.closeQuickAction(component, event, helper);
+    },
+    
+    sendSurvey : function(component, event, helper){
+        
+        var lstTeamWrapperData = component.get('v.lstTeamWrapperData');
+        var isSelectAll = component.get('v.isSelectAll');
+        console.log('lstTeamWrapperData '+JSON.stringify(lstTeamWrapperData));
+        
+        var isSelectedTeam = component.find('isSelectedTeam');
+        var isSelectedTeamMember = component.find('isSelectedTeamMember');
+        
+        var  anySelected = false; 
+        for(var i=0; i<isSelectedTeam.length; i++){
+            if(isSelectedTeam[i].get('v.value') == true)
+                anySelected = true;
+        }
+        for(var i=0; i<isSelectedTeamMember.length; i++){
+            if(isSelectedTeamMember[i].get('v.value') == true)
+                anySelected = true;
+        }
+    
+ 		 
+        lstTeamWrapperData.forEach(function(eachWrapperData){
+            if(eachWrapperData.isSelected == true)
+                 anySelected = true;
+        });
+        
+        if(anySelected == true){
+           // alert('Code is commented');
+        	helper.sendSurvey(component, event, helper);        
+        }else
+        {
+            var toastEvent = $A.get('e.force:showToast');
+            if(toastEvent)
+            {
+                toastEvent.setParams({
+                    "type" : "error",
+                    "message" :"Please select a person first !"
+                });
+                toastEvent.fire();     
+            }
+            else
+            {
+             	alert('Please select a person first !');   
+            }            
+        }
+        
+    	
+    }
+    
+})
