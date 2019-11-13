@@ -1,0 +1,424 @@
+public without sharing class SurveyFormPageController {
+    
+    Public String encryptedId;
+    Public ID surveyFormId;
+    public String surveyFormResponseId;
+    public String contactId{get;set;}
+    public String projectId{get;set;}
+    Public List<KPI_Questions__c> lstKPIQuestions{get;set;}
+    public Boolean renderSurveyForm{get;set;}
+    Public List<String> lstIds{get;set;}
+    public Survey_Form_Response__c objSurveyFormRes{get;set;}
+    public boolean surveyForm{get;set;}
+    public List<SurveyQuestionsWrapper> lstSurveyQuestionsWrapper{get;set;}
+    public String pictureurl{get;set;}
+    Public List<String> options{get;set;}
+    public Boolean isSubmittedSuccessfully{get;set;}
+    
+    
+    public SurveyFormPageController()
+    {
+        Boolean isExceptionOccured = false;
+        encryptedId = ApexPages.currentPage().getParameters().get('id'); 
+        system.debug('Encrypted Id ---->' + encryptedId);
+        Blob key = Blob.valueOf(Label.AESCryptoKey);
+        if(encryptedId != null){
+            try{
+                Blob blobData = EncodingUtil.base64Decode(encryptedId);		
+                Blob decryptedBlob = Crypto.decryptWithManagedIV('AES128', key, blobData);		
+                String decodedId = decryptedBlob.toString();
+                System.debug('decodedId  : '+decodedId); 
+                lstIds = decodedId.split('-');
+                System.debug('Project Id : '+lstIds[0]);
+                System.debug('Contact Id : '+lstIds[1]);
+                projectId = lstIds[0];
+                contactId = lstIds[1];   
+            }catch(Exception ex){
+                isExceptionOccured = true;
+                System.debug('Security Exception Type : '+ex.getTypeName());
+                System.debug('Security Exception Message : '+ex.getMessage());
+            }
+        }
+        
+        if(isExceptionOccured == false)
+        {
+            List<Survey_Form__c> lstSurvey = [SELECT Id FROM Survey_Form__c WHERE Active__c =:true AND Project__c =: projectId ];
+            if(lstSurvey !=null && lstSurvey.size()>0){
+                surveyFormId = lstSurvey[0].Id;
+                System.debug('Survey Form Id '+surveyFormId);
+            }
+       /*    List<Survey_Form_Response__c> lstSurveyFormResponse = [SELECT Id,Name FROM Survey_Form_Response__c WHERE Status__c = 'Completed' AND Filled_By__c =: contactId AND Survey_Form__c =: surveyFormId];
+            System.debug('lstSurveyFormResponse');
+            if(lstSurveyFormResponse != null && lstSurveyFormResponse.size() >0)
+            {
+                renderSurveyForm = false;
+            }
+            else
+            {   */
+                renderSurveyForm = true;
+                Map<String,Boolean> mapOfKPIQuestionIdWithRequired = new Map<String,Boolean>();
+                lstSurveyQuestionsWrapper = new List<SurveyQuestionsWrapper>();
+       
+                List<Survey_Form_Question__c> lstSurveyQuestions = [SELECT Id,KPI_Question__c,Required__c FROM Survey_Form_Question__c WHERE Survey_Form__c =:surveyFormId ];
+                System.debug('lstSurveyQuestions '+lstSurveyQuestions);
+                
+                for(Survey_Form_Question__c eachSFQues : lstSurveyQuestions)
+                {
+                    if(!mapOfKPIQuestionIdWithRequired.containsKey(eachSFQues.KPI_Question__c)){
+                        mapOfKPIQuestionIdWithRequired.put(eachSFQues.KPI_Question__c,eachSFQues.Required__c);
+                    }
+                }
+                
+                for(KPI_Questions__c eachQues :[SELECT Id,Question__r.Question__c,Question__r.Type__c,Question__r.Options__c 
+                                                FROM KPI_Questions__c
+                                                WHERE Id IN : mapOfKPIQuestionIdWithRequired.keySet()])
+                {
+                    SurveyQuestionsWrapper objSurveyQuestionWrapper = new SurveyQuestionsWrapper(eachQues,mapOfKPIQuestionIdWithRequired.get(eachQues.Id));
+                    
+                    System.debug('Question '+eachQues.Question__r.Question__c);
+                    System.debug('Question Type'+eachQues.Question__r.Type__c);
+                    System.debug('Option Values'+eachQues.Question__r.Options__c);
+                    if(eachQues.Question__r.Options__c!=null && eachQues.Question__r.Options__c!='')
+                    {
+                        if(eachQues.Question__r.Options__c.contains('\n'))
+                        {
+                            String str=eachQues.Question__r.Options__c; 
+                            options=str.split('\\n');
+                            System.debug('Available Options in Question --'+options); 
+                            if(eachQues.Question__r.Type__c == 'Single Choice Option With Text Box' || eachQues.Question__r.Type__c == 'Scale' )
+                            {
+                                for(String eachstr: options){
+                                    String trimmedStr = eachstr.trim();
+                                    objSurveyQuestionWrapper.lstSCQOptions.add(new SelectOption(String.valueOf(trimmedStr),String.valueOf(trimmedStr))); 
+                                }
+                                System.debug('objSurveyQuestionWrapper.lstSCQOptions '+objSurveyQuestionWrapper.lstSCQOptions);
+                            }
+                            else if(eachQues.Question__r.Type__c == 'Multiple Choice Option')
+                            {
+                                List<SelectOption> lstMCQOptions = new List<SelectOption>();
+                                for(String eachstr: options){
+                                    String trimmedStr = eachstr.trim();
+                                    lstMCQOptions.add(new SelectOption(String.valueOf(trimmedStr),String.valueOf(trimmedStr))); 
+                                }
+                                objSurveyQuestionWrapper.lstMCQOptions.addAll(lstMCQOptions);
+                                System.debug('objSurveyQuestionWrapper.lstMCQOptions '+objSurveyQuestionWrapper.lstMCQOptions);
+                            }                 
+                        }
+                    }
+                    lstSurveyQuestionsWrapper.add(objSurveyQuestionWrapper);
+                }
+         //   }
+        }
+        else
+        {
+            ApexPages.addmessage(new ApexPages.message(ApexPages.severity.Error, 'Decryption failed . Invalied URL !'));
+        }
+        
+    }
+    
+    public class SurveyQuestionsWrapper
+    {
+        //Question Related Properties
+        public string question{get;set;}
+        public string vtype{get;set;}
+        public string quesId {get;set;}
+        public Boolean isRequired{get;set;}
+        
+        // Single Choice Question Related Properties
+        Public List<SelectOption> lstSCQOptions{get;set;}
+        public String singleChoiceAns {get; set;}
+        public string singlechoiceComment {get;set;}
+        
+        // Multiple Choice Question Related Properties
+        Public List<SelectOption> lstMCQOptions{get;set;}
+        Public List<String> multipleChoiceOptionsAns{get;set;}
+        Public String  multipleChoiceComment{get;set;}
+        
+        //Other Answer Related Properties
+        public String scaleAns{get;set;}
+        public String scaleComment{get;set;}
+        public string textAns {get;set;}
+        public Date dateAns {get;set;}
+        public string numericAns {get;set;}
+        public string locationAns {get;set;}
+        public String feedbackAns {get; set;}
+        public String imageGeoTagAns {get;set;}
+        
+        //Image Attachment Related Answer Properties
+        public Blob imageVal{get;set;}
+        public string imageValName {get;set;}
+        public Blob fileVal{get;set;}
+        
+        public Attachment imageUpload{get;set;}
+        public String imageRelatedComment{get;set;}
+        
+        
+        //File Upload Related properties
+        public string fileValName {get;set;}
+        public string getImageValue{get;set;}
+        public string getfileValue{get;set;}
+        
+        public Attachment fileUpload{get;set;}
+        public String fileRelatedComment{get;set;}
+ 
+        public List<SelectOption> getMultipleChoiceOptions() 
+        {
+            return lstMCQOptions;
+        }
+        
+        public List<SelectOption> getSingleChoiceOptions() 
+        {
+            return lstSCQOptions; 
+        }
+        
+        public SurveyQuestionsWrapper(KPI_Questions__c kpiQues,Boolean isRequiredQuestion)
+        {
+            question = kpiQues.Question__r.Question__c;
+            vtype = kpiQues.Question__r.Type__c;
+            quesId = kpiQues.Question__r.Id;
+            isRequired = isRequiredQuestion;  
+            lstMCQOptions = new List<SelectOption>();
+            lstSCQOptions = new List<SelectOption>(); 
+            multipleChoiceOptionsAns = new List<String>();
+            imageUpload = new Attachment();
+            fileUpload = new Attachment();
+            
+        }
+    }
+    
+    public Pagereference createSurveyResponse()
+    {
+        
+       
+        
+        return null;
+    }
+    
+    
+    public PageReference updatePreferences()
+    {
+        System.debug('lstSurveyQuestionsWrapper '+lstSurveyQuestionsWrapper);
+        for(SurveyQuestionsWrapper eachWrapper : lstSurveyQuestionsWrapper)
+        {
+            System.debug('eachWrapper.multipleChoiceOptionsAns : '+eachWrapper.multipleChoiceOptionsAns);
+            System.debug('eachWrapper.singleChoiceAns :'+eachWrapper.singleChoiceAns);
+        }
+        List<Survey_Response_Answer__c> lstSurveyResponseAns = new List<Survey_Response_Answer__c>();
+         Boolean isAnyMandatoryIncomplete = false;
+        List<Survey_Form_Response__c> lstSurveyFormResponse = [SELECT Id,Name FROM Survey_Form_Response__c 
+                                                               WHERE Status__c = 'Completed' 
+                                                               AND Filled_By__c =: contactId 
+                                                               AND Survey_Form__c =: surveyFormId 
+                                                               AND CreatedDate =: System.today() LIMIT 1 ];
+        System.debug('lstSurveyFormResponse '+lstSurveyFormResponse);
+
+        if(lstSurveyFormResponse != null && lstSurveyFormResponse.size() >0)
+        {
+            System.debug('Existing Response Processed');
+            objSurveyFormRes = lstSurveyFormResponse[0];
+            surveyFormResponseId = lstSurveyFormResponse[0].Id;
+            List<Survey_Response_Answer__c> lstSurveyAns = [SELECT Id FROM Survey_Response_Answer__c WHERE Survey_Form_Response__c =:surveyFormResponseId];
+            if(lstSurveyAns != null && lstSurveyAns.size() >0){
+                delete lstSurveyAns;
+            }
+        }
+        else
+        {
+            System.debug('New Response Created');
+            objSurveyFormRes = new Survey_Form_Response__c();
+            objSurveyFormRes.Survey_Form__c = surveyFormId;
+            objSurveyFormRes.Filled_By__c = contactId;
+            insert objSurveyFormRes;    
+            surveyFormResponseId = objSurveyFormRes.Id;
+            system.debug('Survey Form Response----->' + objSurveyFormRes);
+            system.debug('Survey Form Response ID----->' + surveyFormResponseId);
+            
+        }
+       
+        
+        if(lstSurveyQuestionsWrapper!=null && lstSurveyQuestionsWrapper.size()>0)
+        {
+            for(SurveyQuestionsWrapper eachlistWrapper : lstSurveyQuestionsWrapper)
+            {
+                Survey_Response_Answer__c objAns = new Survey_Response_Answer__c();
+                objAns.Survey_Form_Response__c = surveyFormResponseId;
+                objAns.Survey_Question__c = eachlistWrapper.quesId;
+                system.debug('===eachlistWrapper.getans: ' +eachlistWrapper.textAns);
+                if(eachlistWrapper.vtype == 'Numeric'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.numericAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }    
+                    objAns.Answer__c = eachlistWrapper.numericAns;
+                }
+                
+                else if(eachlistWrapper.vtype == 'Scale'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.feedbackAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }  
+                    objAns.Answer__c = eachlistWrapper.feedbackAns;
+                    objAns.Comment__c = eachlistWrapper.scaleComment;
+                }
+                
+                else if(eachlistWrapper.vtype == 'Image Upload With Text Box'){
+                    //   objAns.Uploaded_Image_URL__c = uploadImageToCloudinary(eachlistWrapper.imageUpload);
+                    objAns.Comment__c = eachlistWrapper.imageRelatedComment;
+                    insert objAns;
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.imageUpload.Name == null && eachlistWrapper.imageUpload.Body == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }  
+                    if(eachlistWrapper.imageUpload.Name != null && eachlistWrapper.imageUpload.Body != null ){
+                        Attachment att = new Attachment();
+                        att.Name = eachlistWrapper.imageUpload.Name;
+                        att.Body = eachlistWrapper.imageUpload.Body;
+                        att.ParentId = objAns.Id;
+                        insert att;    
+                    }
+                    
+                }
+                
+                else if(eachlistWrapper.vtype == 'Date'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.dateAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }  
+                    objAns.Answer__c = String.valueOf(eachlistWrapper.dateAns);
+                    System.debug('String.valueOf(eachlistWrapper.dateAns) '+String.valueOf(eachlistWrapper.dateAns));
+                }
+                else if(eachlistWrapper.vtype == 'Single Choice Option With Text Box'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.singleChoiceAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }  
+                    objAns.Answer__c = eachlistWrapper.singleChoiceAns;
+                    objAns.Comment__c = eachlistWrapper.singlechoiceComment;
+                }
+                else if(eachlistWrapper.vtype == 'Multiple Choice Option'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.multipleChoiceOptionsAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }  
+                    objAns.Answer__c = String.join(eachlistWrapper.multipleChoiceOptionsAns,',');
+                    objAns.Comment__c = eachlistWrapper.multipleChoiceComment;
+                }
+                else if(eachlistWrapper.vtype == 'Location'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.locationAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    } 
+                    objAns.Answer__c = eachlistWrapper.locationAns;
+                }
+                else if(eachlistWrapper.vtype == 'Image Geo Tag'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.imageGeoTagAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    } 
+                    objAns.Answer__c = eachlistWrapper.imageGeoTagAns;
+                }
+                else if(eachlistWrapper.vtype == 'File Upload'){
+                    //objAns.Answer__c = eachlistWrapper.locationAns;
+                    objAns.Comment__c = eachlistWrapper.fileRelatedComment;
+                    insert objAns;
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.fileUpload.Name == null && eachlistWrapper.fileUpload.Body == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    } 
+                    if(eachlistWrapper.fileUpload.Name != null && eachlistWrapper.fileUpload.Body != null){
+                        Attachment att = new Attachment();
+                        att.Name = eachlistWrapper.fileUpload.Name;
+                        att.Body = eachlistWrapper.fileUpload.Body;
+                        att.ParentId = objAns.Id;
+                        insert att;
+                    }
+                    
+                }
+                else if(eachlistWrapper.vtype == 'Text Box'){
+                    if(eachlistWrapper.isRequired == true && eachlistWrapper.textAns == null)
+                    {
+                        isAnyMandatoryIncomplete = true;
+                    }
+                    objAns.Answer__c = eachlistWrapper.textAns;
+                }
+                
+                system.debug('===before insert Answer Obj ==' +objAns);
+                lstSurveyResponseAns.add(objAns);
+                system.debug('New list answer values : '+lstSurveyResponseAns);
+            }
+        }
+        if(isAnyMandatoryIncomplete == true)
+        {
+                ApexPages.addmessage(new ApexPages.message(ApexPages.severity.WARNING, 'Please complete all mandatory questions !'));
+                return null;
+        }
+        else
+        {
+            upsert lstSurveyResponseAns;
+            objSurveyFormRes.Status__c = 'Completed';
+            System.debug('objSurveyFormRes : '+objSurveyFormRes);
+            update objSurveyFormRes;
+            
+        }
+       
+     	PageReference thankYouPage = new PageReference('/apex/ThankYouPage');
+        thankYouPage.setRedirect(true);
+        return thankYouPage;
+       // return null;
+    }
+    
+    
+    public String uploadImageToCloudinary(Attachment picture){
+        
+        //the cloud name,apikey and apisecret
+        String cloudName = 'hhfkibifx';
+        String apikey= '452652414377448';
+        String apisecret= 'L3bJxi98sUcZ5XWTbMQFA7OHF7g';
+        String pictureurl = '';
+        
+        Http h = new Http();
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('http://api.cloudinary.com/v1_1/'+cloudname+'/image/upload');
+        req.setMethod('POST');
+        
+        //base64encode picture body
+        String pictureString = EncodingUtil.base64Encode(picture.body);
+        //'UTF-8' encode
+        pictureString= EncodingUtil.urlEncode(pictureString, 'UTF-8');
+        
+        String tiStmp=String.valueOf(System.NOW().getTime() / 1000);
+        String myData = 'public_id=CldinaryImg&timestamp='+tiStmp+apisecret;
+        Blob hash = Crypto.generateDigest('SHA1',Blob.valueOf(myData));
+        String hexDigest = EncodingUtil.convertToHex(hash);
+        String fileString = 'data:image/png;base64,';
+        
+        String finalBodyString ='public_id=CldinaryImg&api_key='+apikey+'&timestamp='+EncodingUtil.urlEncode(tiStmp, 'UTF-8')+'&signature='+EncodingUtil.urlEncode(hexDigest, 'UTF-8')+'&file='+EncodingUtil.urlEncode(fileString, 'UTF-8')+pictureString;
+        
+        req.setBody(finalBodyString);
+        HttpResponse res = h.send(req);
+        pictureurl = parseJSON(res);
+        return pictureurl;
+    }
+    
+    //method to parse json response from cloudinary and get url value of the image
+    public String parseJSON(HttpResponse respurl)
+    {
+        JSONParser parser = JSON.createParser(respurl.getBody());
+        String pictureurl = '';
+        while (parser.nextToken() != JSONToken.END_OBJECT) 
+        {
+            if (parser.getCurrentToken() == JSONToken.FIELD_NAME)
+            {
+                String text = parser.getText();
+                parser.nextToken();
+                if (text == 'url') {
+                    pictureurl = parser.getText();
+                    break;
+                }
+            }
+        }
+        return pictureurl;
+    }
+    
+    
+}
